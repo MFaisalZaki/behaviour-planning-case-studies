@@ -51,6 +51,20 @@ class SuperMarioEnemyDim(DiversityDim):
         self.domain.add(ret_behaviour_ltl)
         return ret_behaviour_ltl
 
+class SuperMarioScore(DiversityDim):
+    def __init__(self):
+        super().__init__("score")
+
+    def abstract(self, state_trace, actions_list):
+        return [{f"{self.name}_{[sprite.alive for sprite in state._sprites].count(True)}":True} | {f'{self.name}_goal_state': state.gameStatus == GameStatus.WIN} for state in state_trace]
+
+    def extract_behaviour(self, state_trace, actions_list):
+        ltl_trace = self.abstract(state_trace, [])
+        ret_behaviour_ltl = f"FG({' & '.join(filter(lambda k:  f'{self.name}' in k, ltl_trace[-1].keys()))})"
+        self.domain.add(ret_behaviour_ltl)
+        return ret_behaviour_ltl
+
+
 class SuperMarioBehaviourSpace:
     def __init__(self, dimensions, model):
         self.dimensions = dimensions
