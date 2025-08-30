@@ -9,23 +9,28 @@ import pcg_benchmark
 
 
 from agents.fbi import SuperMarioFBIAgent, SuperMarioCoinDim, SuperMarioEnemyDim, SuperMarioScore
-from agents.utilities import BehaviourCount, render
+from agents.utilities import BehaviourCount, render, render_plan, dump_render
 
 env = pcg_benchmark.make("smbtile-v0")
 
 levelfile = '/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval/code/levels/lvl-0.txt'
-# '/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval/venv/lib/python3.12/site-packages/pcg_benchmark/probs/smb/slices.txt'
-# '/Users/mustafafaisal/Developer/Planiverse/venv-2/lib/python3.12/site-packages/planiverse/problems/retro_games/smb-levels/lvl-1.txt'
+
+# levelfile = '/Users/mustafafaisal/Developer/Planiverse/venv-2/lib/python3.12/site-packages/planiverse/problems/retro_games/smb-levels/lvl-1.txt'
 convertmap = lambda level: '\n'.join([''.join(row) for row in zip(*level.split('\n'))])
 levelString = convertmap(open(levelfile).read())
 
+# levelString = open('/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval/venv/lib/python3.12/site-packages/pcg_benchmark/probs/smb/slices.txt').read()
+
 fbiagent_naive = SuperMarioFBIAgent([])
 
-model = fbiagent_naive.__construct_world_model__(levelString, 50)
-img = render(model._world)
-img.save('/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval/sandbox/test.png')
+# model = fbiagent_naive.__construct_world_model__(levelString, 50)
+# img = render(model._world)
+# img.save('/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval/sandbox/test.png')
 # Now we need to render this....
 # naive_plans = fbiagent_naive.search(1, levelString)
+
+# dump_render(render_plan(naive_plans[0]),'/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval/sandbox')
+
 pass
 
 # TODO: Simulate a plan

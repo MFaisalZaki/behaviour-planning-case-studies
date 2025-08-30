@@ -123,7 +123,7 @@ class SuperMarioFBIAgent(AStarTree):
         # plans_ltl_formula.truth([ltl_trace[-1]])
         return any([p.truth([ltl_trace]) for p in plansltl])
 
-    def search(self, k, level, maxIterations=500, timer=50, plans=[], forbid_behaviours=False):
+    def search(self, k, level, maxIterations=500, timer=20, plans=[], forbid_behaviours=False):
         solutions = []
         model = self.__construct_world_model__(level, timer)
         initial_model = model.clone()
@@ -136,7 +136,8 @@ class SuperMarioFBIAgent(AStarTree):
         # I don't think we need the maxIterations termination condition.
         # while len(queue) > 0 and maxIterations > 0 and len(solutions) < k:
         while len(queue) > 0 and len(solutions) < k:
-            queue = sorted(queue, key=lambda v: v.getHeuristic() - 0.9 * v.getCost(), reverse=True)
+            # queue = sorted(queue, key=lambda v: v.getHeuristic() - 0.9 * v.getCost(), reverse=True)
+            queue = sorted(queue, key=lambda v: v.getHeuristic(), reverse=True)
             current = queue.pop(0)
             if self.isInVisited(visitedStates, current.getKey()): continue
             if forbid_behaviours and bspace.check_behaviour(current, behaviours): continue
@@ -147,4 +148,7 @@ class SuperMarioFBIAgent(AStarTree):
                 bspace.check_behaviour(current, behaviours)
             queue = queue + current.generateChildren()
             maxIterations -= 1
+            # for dev only:
+            # if maxIterations < 0:
+            #     return [SuperMarioSimulationPlan(current.getNextActions(), bspace.infer(current), bspace.represent_plan(current), initial_model)]
         return solutions

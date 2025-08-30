@@ -109,23 +109,29 @@ def render(level):
 			shift_x = 0
 			if layout[y][x] in graphics:
 				lvl_image.paste(graphics[layout[y][x]], (x*scale + shift_x, y*scale, (x+1)*scale + shift_x, (y+1)*scale))
-			# elif x == level.level.exitTileX and y == level.level.exitTileY:
-			#     shift_x = 8
-			#     lvl_image.paste(graphics['^'], (x*scale + shift_x, y*scale, (x+1)*scale + shift_x, (y+1)*scale))
 			else:
 				print(f"Unknown tile: {layout[y][x]} at {(x,y)}")
 	# print sprties
-	for y, row in enumerate(level.level._spriteTemplates):
-		for x, sprite in enumerate(row):
-			if sprite == smb_helper.SpriteType.NONE: continue
-			match sprite:
-				case smb_helper.SpriteType.GOOMBA: char = "g"
-				case smb_helper.SpriteType.RED_KOOPA: char = "r"
-				case smb_helper.SpriteType.GREEN_KOOPA: char = "k"
-				case smb_helper.SpriteType.SPIKY: char = "y"
-				case _:
-					assert False, f"Unknown sprite type {sprite}"
-			lvl_image.paste(graphics[char], (x*scale + shift_x, y*scale, (x+1)*scale + shift_x, (y+1)*scale))
+	# for y, row in enumerate(level.level._spriteTemplates):
+	# 	for x, sprite in enumerate(row):
+	# 		if sprite == smb_helper.SpriteType.NONE: continue
+	# 		match sprite:
+	# 			case smb_helper.SpriteType.GOOMBA: char = "g"
+	# 			case smb_helper.SpriteType.RED_KOOPA: char = "r"
+	# 			case smb_helper.SpriteType.GREEN_KOOPA: char = "k"
+	# 			case smb_helper.SpriteType.SPIKY: char = "y"
+	# 			case _:
+	# 				assert False, f"Unknown sprite type {sprite}"
+	# 		lvl_image.paste(graphics[char], (x*scale + shift_x, y*scale, (x+1)*scale + shift_x, (y+1)*scale))
 	# print Mario
-	lvl_image.paste(graphics["M"], (level.level.marioTileY*scale, level.level.marioTileX*scale, (level.level.marioTileY+1)*scale, (level.level.marioTileX+1)*scale))
+	mario = level._sprites[0]
+	print(f"Mario at {(mario.x, mario.y)}")
+	lvl_image.paste(graphics["M"], (int(mario.y*scale), int(mario.x*scale), int(mario.y+1 *scale), int(mario.x+1 *scale)))
 	return lvl_image
+
+def render_plan(plan):
+	return [(t, render(world)) for t, world in enumerate(plan._world_trace)]
+
+def dump_render(imgstrace, dir):
+	for t, img in imgstrace:
+		img.save(f"{dir}/frame_{t}.png")
