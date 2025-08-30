@@ -25,7 +25,7 @@ if __name__ == "__main__":
     dump_plans_behaviours(luigi_plans, BehaviourSpace([d(luigi.env) for d in dims], luigi.env), renderdir, 'luigi')
 
     print("Generating plans using mario...")
-    mario = SuperMarioFBIAgent([], romfile)
+    mario = SuperMarioFBIAgent(dims, romfile)
     mario_plans = mario.plan(args.k)
     dump_plans_render(mario_plans, mario.env, renderdir, "mario")
     dump_plans_behaviours(mario_plans, BehaviourSpace([d(mario.env) for d in dims], mario.env), renderdir, 'mario')
