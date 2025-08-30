@@ -1,42 +1,31 @@
 import os
 
 from planner import SuperMarioFBIAgent, SuperMarioScoreDiversity, SuperMarioCoinsDiversity, SuperMarioTimeleftDiversity
-from utilities import dump_plan
-
-current_file_path = os.path.dirname(os.path.abspath(__file__))
-sml_romfile = os.path.join(current_file_path, "sandbox", "SuperMarioLand.gb")
-dumpstates_images = os.path.join(current_file_path, "sandbox", "dump")
-os.makedirs(dumpstates_images, exist_ok=True)
+from behaviour_space import BehaviourSpace
+from utilities import dump_plans_render, create_parser, dump_plans_behaviours
 
 
-dims = []
-dims += [SuperMarioScoreDiversity]
-dims += [SuperMarioCoinsDiversity]
-dims += [SuperMarioTimeleftDiversity]
-mario = SuperMarioFBIAgent(dims, sml_romfile)
-plans = mario.plan(3)
+if __name__ == "__main__":
+    parser = create_parser()
+    args = parser.parse_args()
+    romfile = args.romfile
+    renderdir = args.render_dir
+    assert os.path.exists(args.romfile), "ROM file does not exist"
+    os.makedirs(renderdir, exist_ok=True)
+    
+    dims = []
+    dims += [SuperMarioScoreDiversity]
+    dims += [SuperMarioCoinsDiversity]
+    dims += [SuperMarioTimeleftDiversity]
 
-# luigi = SuperMarioFBIAgent([], sml_romfile)
-# plans = luigi.plan(3)
+    print("Generating plans using luigi...")
+    luigi = SuperMarioFBIAgent([], romfile)
+    luigi_plans = luigi.plan(args.k)
+    dump_plans_render(luigi_plans, luigi.env, renderdir, "luigi")
+    dump_plans_behaviours(luigi_plans, BehaviourSpace([d(luigi.env) for d in dims], luigi.env), renderdir, 'luigi')
 
-# dump_plan(plans[0], luigi.env, os.path.join(current_file_path, "sandbox-luigi"))
-
-pass
-
-
-
-
-# from env_case_study import SuperMarioCaseStudy
-# from planner import astar_search
-
-# # from planiverse.problems.retro_games.super_mario_bros_gb import SuperMario, SuperMarioAction
-# # from code.planner import astar_search
-
-# env = SuperMarioCaseStudy(sml_romfile)
-# env.fix_index(0)
-# init_state, _ = env.reset()
-
-# plan = astar_search(init_state, env)
-pass
-
-# pass
+    print("Generating plans using mario...")
+    mario = SuperMarioFBIAgent([], romfile)
+    mario_plans = mario.plan(args.k)
+    dump_plans_render(mario_plans, mario.env, renderdir, "mario")
+    dump_plans_behaviours(mario_plans, BehaviourSpace([d(mario.env) for d in dims], mario.env), renderdir, 'mario')

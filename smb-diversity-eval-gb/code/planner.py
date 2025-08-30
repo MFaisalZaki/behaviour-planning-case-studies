@@ -97,6 +97,7 @@ class SuperMarioFBIAgent:
             state = state_trace[0]
             if self.env.is_goal(state):
                 plans.append(SuperMarioPlan(action_trace, *self.bspace.infer(state_trace, action_trace)))
+                print(f"Found plan with behaviour: {plans[-1].behaviour}")
                 continue
             for action, successor_state in self.env.successors(state):
                 successor_state_trace  = [successor_state] + state_trace

@@ -29,7 +29,7 @@ class BehaviourSpace:
         return plan_behaviour, self.extract_plan(action_trace)
 
     def extract_plan(self, action_trace):
-        ' & '.join(f'{a}_{t}' for t,a in enumerate(action_trace))
+        return ' & '.join(f'{a}_{t}' for t,a in enumerate(action_trace))
 
     def check_behaviour(self, state_trace, actionslist, behaviours):
         if len(behaviours) == 0: return False
