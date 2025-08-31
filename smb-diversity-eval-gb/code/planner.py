@@ -84,6 +84,17 @@ class SuperMarioFBIAgent:
 		return action_trace[-1].cost() + penalties
 	
 	def __heuristic__fn__(self, state_trace, action_trace):
+		# Considering level_progress only
+		lt = [state.level_progress for state in state_trace[::-1]]
+		# Consdering velocity vector with level_progress # I doubt the x velocity cound have a neg value.
+		# lt = [state.level_progress * state.mario_velocity.x for state in state_trace[::-1]]
+		dir_vector = [lt[i+1]-lt[i] for i in range(len(lt)-1)]
+		positive_count = len([d for d in dir_vector if d > 0])
+		negative_count = len(dir_vector) - positive_count
+		confidence = abs(positive_count - negative_count) / len(dir_vector) if len(dir_vector) > 0 else 0
+		factor = 10
+		return -1*sum(dir_vector)*confidence*factor + 10000 * state_trace[0].mario_damage()
+		# Old heuristic
 		root  = state_trace[-1]   
 		state = state_trace[0]
 		return (root.level_progress - state.level_progress) + 1000 * state.mario_damage()
@@ -91,7 +102,31 @@ class SuperMarioFBIAgent:
 	def __search__(self, k, forbid_behaviour):
 		# return self.__iw_search__(k, forbid_behaviour)
 		return self.__astar_search__(k, forbid_behaviour)
-
+	
+	def __astar_search__(self, k, forbid_behaviour):
+		queue = PriorityQueue()
+		state, _ = self.env.reset()
+		queue.push(([state], []), 0)
+		plans = []
+		ltl_parser = LTLfParser()
+		behaviours = [ltl_parser(f'({p.behaviour})') for p in self.generated_plans]
+		while len(plans) < k and not queue.is_empty():
+			state_trace, action_trace = queue.pop()
+			state = state_trace[0]
+			if self.env.is_goal(state):
+				plans.append(SuperMarioPlan(action_trace, *self.bspace.infer(state_trace, action_trace)))
+				print(f"Found plan with behaviour: {plans[-1].behaviour}")
+				continue
+			for action, successor_state in self.env.successors(state):
+				successor_state_trace  = [successor_state] + state_trace
+				successor_action_trace = action_trace + [action]
+				if self.env.is_terminal(successor_state): continue
+				if forbid_behaviour and self.bspace.check_behaviour(successor_state_trace, successor_action_trace, behaviours): 
+					continue
+				key = self.__heuristic__fn__(successor_state_trace, successor_action_trace) + self.__cost_fn__(successor_state_trace, successor_action_trace)
+				queue.push((successor_state_trace, successor_action_trace), key)
+		return plans
+	
 	def __iw_search__(self, k, forbid_behaviour):
 		if self.i is None:
 			# for i in range(1 if self.i is None else self.i, 1000):
@@ -130,35 +165,6 @@ class SuperMarioFBIAgent:
 				queue.append((successor_state_trace, successor_action_trace, frozenset.union(frozenset(successor_state.literals), literals_history)))
 		return plans
 
-
-
-
-
-
-	def __astar_search__(self, k, forbid_behaviour):
-		queue = PriorityQueue()
-		state, _ = self.env.reset()
-		queue.push(([state], []), 0)
-		plans = []
-		ltl_parser = LTLfParser()
-		behaviours = [ltl_parser(f'({p.behaviour})') for p in self.generated_plans]
-		while len(plans) < k and not queue.is_empty():
-			state_trace, action_trace = queue.pop()
-			state = state_trace[0]
-			if self.env.is_goal(state):
-				plans.append(SuperMarioPlan(action_trace, *self.bspace.infer(state_trace, action_trace)))
-				print(f"Found plan with behaviour: {plans[-1].behaviour}")
-				continue
-			for action, successor_state in self.env.successors(state):
-				successor_state_trace  = [successor_state] + state_trace
-				successor_action_trace = action_trace + [action]
-				if self.env.is_terminal(successor_state): continue
-				if forbid_behaviour and self.bspace.check_behaviour(successor_state_trace, successor_action_trace, behaviours): 
-					continue
-				key = self.__heuristic__fn__(successor_state_trace, successor_action_trace) + self.__cost_fn__(successor_state_trace, successor_action_trace)
-				queue.push((successor_state_trace, successor_action_trace), key)
-		return plans
-	
 	def plan(self, k):
 		# there is no dimensions provided, assume top-k.
 		if len(self.bspace) == 0:  

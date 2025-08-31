@@ -42,7 +42,9 @@ def dump_plans_behaviours(plans, bspace, dir, prefix):
         plans_results[f"plan_{idx}"] = {
             "behaviour": behaviour,
             "ltl": planltl,
-            "actions": list(map(str, plan.actions))
+            "actions": list(map(str, plan.actions)),
+            "len": len(plan.actions),
+            "cost": sum(a.cost() for a in plan.actions)
         }
         behaviours.add(behaviour)
         plansltl.add(planltl)
