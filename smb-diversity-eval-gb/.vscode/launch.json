@@ -16,7 +16,7 @@
                 "--romfile", "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval-gb/code/sandbox/SuperMarioLand.gb",
                 "--render-dir", "${workspaceFolder}/sandbox-renders",
                 "-k", "2",
-                "--agent", "luigi"
+                "--agent", "mario"
             ]
         },
 
@@ -32,6 +32,16 @@
                 "--render-dir", "${workspaceFolder}/sandbox-renders",
                 "-k", "2"
             ]
+        },
+
+        {
+            "name": "dev.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/code/sandbox-dev/dev.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args" : []
         },
         
     ]
