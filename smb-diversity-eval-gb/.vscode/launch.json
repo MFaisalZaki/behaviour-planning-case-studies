@@ -18,6 +18,21 @@
                 "-k", "2",
                 "--agent", "luigi"
             ]
-        }
+        },
+
+        {
+            "name": "generate.py",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/code/generate-slurm.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args" : [
+                "--romfile", "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval-gb/code/sandbox/SuperMarioLand.gb",
+                "--render-dir", "${workspaceFolder}/sandbox-renders",
+                "-k", "2"
+            ]
+        },
+        
     ]
 }
