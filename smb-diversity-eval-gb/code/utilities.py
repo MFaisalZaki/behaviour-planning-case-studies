@@ -21,6 +21,7 @@ def create_parser():
     parser.add_argument("--romfile", type=str, help="Path to the ROM file")
     parser.add_argument("--render-dir", type=str, help="Render the environment")
     parser.add_argument("-k", type=int, default=3, help="Number of plans to generate")
+    parser.add_argument("--agent", type=str, default="luigi", help="Agent to use for planning [luigi for top-k and mario for diverse]")
     return parser
 
 def dump_plan(plan, env, dir):

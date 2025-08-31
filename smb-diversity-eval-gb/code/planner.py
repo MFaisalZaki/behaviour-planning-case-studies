@@ -78,9 +78,9 @@ class SuperMarioFBIAgent:
 	def __cost_fn__(self, state_trace, action_trace):
 		penalties = 0
 		# consider the down action, this should be costly if mario keeps pressing down for several rounds.
-		if ['down' in str(a) for a in action_trace].count(True) > 3: penalties += 5
+		if ['down' in str(a) for a in action_trace].count(True) / len(action_trace) > 0.3: penalties += 5
+		if ['nop' in str(a) for a in action_trace].count(True) / len(action_trace) > 0.3:  penalties += 5
 		# also push if mario keeps going right then left multiple time.
-
 		return action_trace[-1].cost() + penalties
 	
 	def __heuristic__fn__(self, state_trace, action_trace):
@@ -103,6 +103,10 @@ class SuperMarioFBIAgent:
 		# return self.__iw_search__(k, forbid_behaviour)
 		return self.__astar_search__(k, forbid_behaviour)
 	
+	def __forbid_solution__(self, action_trace, plansltls):
+		if len(plansltls) == 0: return False
+		return any([p.truth([{f'{a}_{t}':True  for t,a in enumerate(action_trace)}]) for p in plansltls])
+
 	def __astar_search__(self, k, forbid_behaviour):
 		queue = PriorityQueue()
 		state, _ = self.env.reset()
@@ -110,19 +114,22 @@ class SuperMarioFBIAgent:
 		plans = []
 		ltl_parser = LTLfParser()
 		behaviours = [ltl_parser(f'({p.behaviour})') for p in self.generated_plans]
+		plansltl   = [ltl_parser(f'({p.action_ltl})') for p in self.generated_plans]
 		while len(plans) < k and not queue.is_empty():
 			state_trace, action_trace = queue.pop()
 			state = state_trace[0]
+			if self.__forbid_solution__(action_trace, plansltl): 
+				continue
 			if self.env.is_goal(state):
 				plans.append(SuperMarioPlan(action_trace, *self.bspace.infer(state_trace, action_trace)))
+				plansltl.append(ltl_parser(f'({plans[-1].action_ltl})'))
 				print(f"Found plan with behaviour: {plans[-1].behaviour}")
 				continue
 			for action, successor_state in self.env.successors(state):
 				successor_state_trace  = [successor_state] + state_trace
 				successor_action_trace = action_trace + [action]
 				if self.env.is_terminal(successor_state): continue
-				if forbid_behaviour and self.bspace.check_behaviour(successor_state_trace, successor_action_trace, behaviours): 
-					continue
+				if forbid_behaviour and self.bspace.check_behaviour(successor_state_trace, successor_action_trace, behaviours): continue
 				key = self.__heuristic__fn__(successor_state_trace, successor_action_trace) + self.__cost_fn__(successor_state_trace, successor_action_trace)
 				queue.push((successor_state_trace, successor_action_trace), key)
 		return plans

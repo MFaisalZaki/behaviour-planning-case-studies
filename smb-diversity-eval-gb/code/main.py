@@ -11,21 +11,18 @@ if __name__ == "__main__":
     romfile = args.romfile
     renderdir = args.render_dir
     assert os.path.exists(args.romfile), "ROM file does not exist"
-    os.makedirs(renderdir, exist_ok=True)
+    assert args.agent in ["luigi", "mario"], "Agent must be either 'luigi' or 'mario'"
     
     dims = []
     dims += [SuperMarioScoreDiversity]
     dims += [SuperMarioCoinsDiversity]
     dims += [SuperMarioTimeleftDiversity]
 
-    print("Generating plans using luigi...")
-    luigi = SuperMarioFBIAgent([], romfile)
-    luigi_plans = luigi.plan(args.k)
-    dump_plans_render(luigi_plans, luigi.env, renderdir, "luigi")
-    dump_plans_behaviours(luigi_plans, BehaviourSpace([d(luigi.env) for d in dims], luigi.env), renderdir, 'luigi')
-
-    print("Generating plans using mario...")
-    mario = SuperMarioFBIAgent(dims, romfile)
-    mario_plans = mario.plan(args.k)
-    dump_plans_render(mario_plans, mario.env, renderdir, "mario")
-    dump_plans_behaviours(mario_plans, BehaviourSpace([d(mario.env) for d in dims], mario.env), renderdir, 'mario')
+    agent = SuperMarioFBIAgent([], romfile) if args.agent == "luigi" else SuperMarioFBIAgent(dims, romfile)
+    print(f"Generating plans using {args.agent}...")
+    plans = agent.plan(args.k)
+    print(f"Rendering plans for {args.agent}...")
+    os.makedirs(renderdir, exist_ok=True)
+    dump_plans_render(plans, agent.env, renderdir, args.agent)
+    print(f"Dumping plans behaviours for {args.agent}...")
+    dump_plans_behaviours(plans, BehaviourSpace([d(agent.env) for d in dims], agent.env), renderdir, args.agent)
