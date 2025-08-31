@@ -16,7 +16,8 @@
                 "--romfile", "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/smb-diversity-eval-gb/code/sandbox/SuperMarioLand.gb",
                 "--render-dir", "${workspaceFolder}/sandbox-renders",
                 "-k", "2",
-                "--agent", "mario"
+                "--agent", "luigi"
+                // "--agent", "mario"
             ]
         },
 

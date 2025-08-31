@@ -79,7 +79,7 @@ class SuperMarioFBIAgent:
 		penalties = 0
 		# consider the down action, this should be costly if mario keeps pressing down for several rounds.
 		if ['down' in str(a) for a in action_trace].count(True) / len(action_trace) > 0.3: penalties += 5
-		if ['nop' in str(a) for a in action_trace].count(True) / len(action_trace) > 0.3:  penalties += 5
+		if ['nop' in str(a) for a in action_trace].count(True)  / len(action_trace) > 0.3: penalties += 5
 		# also push if mario keeps going right then left multiple time.
 		return action_trace[-1].cost() + penalties
 	
@@ -92,7 +92,7 @@ class SuperMarioFBIAgent:
 		positive_count = len([d for d in dir_vector if d > 0])
 		negative_count = len(dir_vector) - positive_count
 		confidence = abs(positive_count - negative_count) / len(dir_vector) if len(dir_vector) > 0 else 0
-		factor = 10
+		factor = 1
 		return -1*sum(dir_vector)*confidence*factor + 10000 * state_trace[0].mario_damage()
 		# Old heuristic
 		root  = state_trace[-1]   
@@ -118,10 +118,11 @@ class SuperMarioFBIAgent:
 		while len(plans) < k and not queue.is_empty():
 			state_trace, action_trace = queue.pop()
 			state = state_trace[0]
-			if self.__forbid_solution__(action_trace, plansltl): 
-				continue
+			if self.__forbid_solution__(action_trace, plansltl): continue
+			if forbid_behaviour and self.bspace.check_behaviour(state_trace, action_trace, behaviours): continue
 			if self.env.is_goal(state):
 				plans.append(SuperMarioPlan(action_trace, *self.bspace.infer(state_trace, action_trace)))
+				behaviours.append(ltl_parser(f'({plans[-1].behaviour})'))
 				plansltl.append(ltl_parser(f'({plans[-1].action_ltl})'))
 				print(f"Found plan with behaviour: {plans[-1].behaviour}")
 				continue
@@ -129,7 +130,6 @@ class SuperMarioFBIAgent:
 				successor_state_trace  = [successor_state] + state_trace
 				successor_action_trace = action_trace + [action]
 				if self.env.is_terminal(successor_state): continue
-				if forbid_behaviour and self.bspace.check_behaviour(successor_state_trace, successor_action_trace, behaviours): continue
 				key = self.__heuristic__fn__(successor_state_trace, successor_action_trace) + self.__cost_fn__(successor_state_trace, successor_action_trace)
 				queue.push((successor_state_trace, successor_action_trace), key)
 		return plans
@@ -173,6 +173,8 @@ class SuperMarioFBIAgent:
 		return plans
 
 	def plan(self, k):
+		return self.__search__(k, len(self.bspace) != 0)
+	
 		# there is no dimensions provided, assume top-k.
 		if len(self.bspace) == 0:  
 			self.generated_plans = self.__search__(k, False)
