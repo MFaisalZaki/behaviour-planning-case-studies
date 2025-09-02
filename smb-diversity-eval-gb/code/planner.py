@@ -30,24 +30,64 @@ class SuperMarioCoinsDiversity(DiversityDim):
 		state_ltl_trace = self.abstract(state_trace, actions_list)
 		return f'FG({ " & ".join(state_ltl_trace[-1].keys()) })'
 
-
-class SuperMarioTimeleftDiversity(DiversityDim):
+class SuperMarioEnemyEngagementDiversity(DiversityDim):
 	def __init__(self, env):
-		super().__init__('timeleft', env)
+		super().__init__('enemy_engagement', env)
+		self.domain = set()
+
+	def abstract(self, state_trace, actions_list):
+		
+		# This would be tricky, so if an enemy is killed at any point then from
+		# the time it was killed up until the end of the trace, the flag should be true.
+		# and the same for the avoided.
+		enemies_killed_count = [s.enemies_killed>0 for s in state_trace]
+		if any(enemies_killed_count):
+			before_kill = [{f'{self.name}_killed' :False, f'{self.name}_avoided':True, f'{self.name}_goal_state':self.env.is_goal(s)} for s in state_trace[:enemies_killed_count.index(True)]]
+			after_kill  = [{f'{self.name}_killed' :True,  f'{self.name}_avoided':False, f'{self.name}_goal_state':self.env.is_goal(s)} for s in state_trace[enemies_killed_count.index(True):]]
+		else:
+			before_kill = [{f'{self.name}_killed' :False, f'{self.name}_avoided':True, f'{self.name}_goal_state':self.env.is_goal(s)} for s in state_trace]
+			after_kill  = []
+		return before_kill + after_kill
+		
+	def extract_behaviour(self, state_trace, actions_list):
+		state_ltl_trace = self.abstract(state_trace, actions_list)
+		if all([t[f'{self.name}_avoided'] for t in state_ltl_trace]):
+			return f'G({self.name}_avoided)' #f'FG(!{self.name}_avoided & {self.name}_goal_state)'
+		return f'FG({self.name}_killed)' #f"F({self.name}_killed)"
+	
+class SuperMarioSpeedRunnerDiversity(DiversityDim):
+	def __init__(self, env):
+		super().__init__('speedrunner', env)
 		self.domain = set()
 	
 	def __categorise__(self, value):
-		if value < 100: return 'less_100'
-		if value < 200: return 'less_200'
-		if value < 300: return 'less_300'
-		if value <= 400: return 'less_400'
-		return 'full'
+		if value >= 380: return '1'
+		if value >= 350: return '2'
+		if value >= 300: return '3'
+		return '4'
+		# A working on
+		if value >= 398: return '1'
+		if value >= 396: return '2'
+		if value >= 394: return '3'
+		if value >= 391: return '4'
+		if value >= 388: return '5'
+		return '6'
+
+		# TODO: We need to change the values to match the case study.
+		if value >= 300: return 'blazing_fast'
+		if value >= 150: return 'steady_pace'
+		return 'time_crunch'
+		# if value >= 350: return 'lightning_dash'
+		# if value >= 300 and value < 349: return 'turbo_run'
+		# if value >= 200 and value < 299: return 'steady_sprint'
+		# if value >= 100 and value < 199: return 'leisure_stroll'
+		# return 'against_the_clock'
 
 	def abstract(self, state_trace, actions_list):
 		# So mario timer is 400
 		# so let's create a categorial range.
 		# less_100, less_200, less_300, less_400
-		return [{f'{self.name}_{self.__categorise__(s.timeleft)}':True, f'{self.name}_goal_state':self.env.is_goal(s)} for s in state_trace[::-1]]
+		return [{f'{self.name}_{self.__categorise__(s.timeleft)}':True, f'{self.name}_goal_state':self.env.is_goal(s)} for s in state_trace]
 	
 	def extract_behaviour(self, state_trace, actions_list):
 		state_ltl_trace = self.abstract(state_trace, actions_list)
@@ -58,10 +98,10 @@ class SuperMarioPlan:
 		self.actions = actions
 		self.behaviour = behaviour
 		self.action_ltl = action_ltl
+		self.action_ltl_list = action_ltl.split(' & ')
 	
 	def __eq__(self, other):
 		return self.actions == other.actions
-
 
 class SuperMarioFBIAgent:
 	def __init__(self, dims, romfile):
@@ -76,24 +116,26 @@ class SuperMarioFBIAgent:
 		self.i = None
 
 	def __cost_fn__(self, state_trace, action_trace):
+		# return 0
 		penalties = 0
 		# consider the down action, this should be costly if mario keeps pressing down for several rounds.
-		if ['down' in str(a) for a in action_trace].count(True) / len(action_trace) > 0.3: penalties += 5
-		if ['nop' in str(a) for a in action_trace].count(True)  / len(action_trace) > 0.3: penalties += 5
+		if ['down' in str(a) for a in action_trace].count(True) / len(action_trace) > 0.3: penalties += 15
+		if ['nop' in str(a) for a in action_trace].count(True)  / len(action_trace) > 0.3: penalties += 15
 		# also push if mario keeps going right then left multiple time.
 		return action_trace[-1].cost() + penalties
 	
 	def __heuristic__fn__(self, state_trace, action_trace):
 		# Considering level_progress only
-		lt = [state.level_progress for state in state_trace[::-1]]
+		lt = [state.level_progress for state in state_trace]
 		# Consdering velocity vector with level_progress # I doubt the x velocity cound have a neg value.
 		# lt = [state.level_progress * state.mario_velocity.x for state in state_trace[::-1]]
 		dir_vector = [lt[i+1]-lt[i] for i in range(len(lt)-1)]
 		positive_count = len([d for d in dir_vector if d > 0])
 		negative_count = len(dir_vector) - positive_count
 		confidence = abs(positive_count - negative_count) / len(dir_vector) if len(dir_vector) > 0 else 0
+		enemies_killed = 0 #-1 * 4 * state_trace[0].enemies_killed
 		factor = 1
-		return -1*sum(dir_vector)*confidence*factor + 10000 * state_trace[0].mario_damage()
+		return -1*sum(dir_vector)*confidence*factor + 10000 * state_trace[0].mario_damage() + enemies_killed
 		# Old heuristic
 		root  = state_trace[-1]   
 		state = state_trace[0]
@@ -107,6 +149,13 @@ class SuperMarioFBIAgent:
 		if len(plansltls) == 0: return False
 		return any([p.truth([{f'{a}_{t}':True  for t,a in enumerate(action_trace)}]) for p in plansltls])
 
+	def __forbid_partial_solutions__(self, action_trace, partialplansltl):
+		# return False
+		return self.__forbid_solution__(action_trace, partialplansltl)
+
+	def __split_solution_trace__(self, plan):
+		return plan.action_ltl_list[:len(plan.action_ltl_list)//2]
+
 	def __astar_search__(self, k, forbid_behaviour):
 		queue = PriorityQueue()
 		state, _ = self.env.reset()
@@ -115,22 +164,25 @@ class SuperMarioFBIAgent:
 		ltl_parser = LTLfParser()
 		behaviours = [ltl_parser(f'({p.behaviour})') for p in self.generated_plans]
 		plansltl   = [ltl_parser(f'({p.action_ltl})') for p in self.generated_plans]
+		partial_plansltl = [ltl_parser(f'({" & ".join(self.__split_solution_trace__(p))})') for p in self.generated_plans]
 		while len(plans) < k and not queue.is_empty():
 			state_trace, action_trace = queue.pop()
 			state = state_trace[0]
-			if self.__forbid_solution__(action_trace, plansltl): continue
-			if forbid_behaviour and self.bspace.check_behaviour(state_trace, action_trace, behaviours): continue
+			if self.bspace.check_behaviour(state_trace[::-1], action_trace, behaviours): 
+				continue
 			if self.env.is_goal(state):
-				plans.append(SuperMarioPlan(action_trace, *self.bspace.infer(state_trace, action_trace)))
+				plans.append(SuperMarioPlan(action_trace, *self.bspace.infer(state_trace[::-1], action_trace)))
 				behaviours.append(ltl_parser(f'({plans[-1].behaviour})'))
 				plansltl.append(ltl_parser(f'({plans[-1].action_ltl})'))
-				print(f"Found plan with behaviour: {plans[-1].behaviour}")
+				partial_plansltl.append(ltl_parser(f'({" & ".join(self.__split_solution_trace__(plans[-1]))})'))
+				print(f"Found plan with behaviour: {plans[-1].behaviour}, plans count: {len(plans)}.")
+				self.bspace.check_behaviour(state_trace, action_trace, behaviours)
 				continue
 			for action, successor_state in self.env.successors(state):
 				successor_state_trace  = [successor_state] + state_trace
 				successor_action_trace = action_trace + [action]
 				if self.env.is_terminal(successor_state): continue
-				key = self.__heuristic__fn__(successor_state_trace, successor_action_trace) + self.__cost_fn__(successor_state_trace, successor_action_trace)
+				key = self.__heuristic__fn__(successor_state_trace[::-1], successor_action_trace) + self.__cost_fn__(successor_state_trace, successor_action_trace)
 				queue.push((successor_state_trace, successor_action_trace), key)
 		return plans
 	
@@ -174,12 +226,3 @@ class SuperMarioFBIAgent:
 
 	def plan(self, k):
 		return self.__search__(k, len(self.bspace) != 0)
-	
-		# there is no dimensions provided, assume top-k.
-		if len(self.bspace) == 0:  
-			self.generated_plans = self.__search__(k, False)
-		else:
-			for _ in range(k):
-				self.generated_plans += self.__search__(1, True)
-		
-		return self.generated_plans

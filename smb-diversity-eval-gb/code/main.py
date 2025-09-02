@@ -1,6 +1,6 @@
 import os
 
-from planner import SuperMarioFBIAgent, SuperMarioScoreDiversity, SuperMarioCoinsDiversity, SuperMarioTimeleftDiversity
+from planner import SuperMarioFBIAgent, SuperMarioSpeedRunnerDiversity, SuperMarioEnemyEngagementDiversity
 from behaviour_space import BehaviourSpace
 from utilities import dump_plans_render, create_parser, dump_plans_behaviours
 
@@ -13,10 +13,11 @@ if __name__ == "__main__":
     assert os.path.exists(args.romfile), "ROM file does not exist"
     assert args.agent in ["luigi", "mario"], "Agent must be either 'luigi' or 'mario'"
     
-    dims = []
-    dims += [SuperMarioScoreDiversity]
-    dims += [SuperMarioCoinsDiversity]
-    dims += [SuperMarioTimeleftDiversity]
+    dims  = []
+    # dims += [SuperMarioSpeedRunnerDiversity]
+    dims += [SuperMarioEnemyEngagementDiversity]
+    # dims += [SuperMarioCoinsDiversity]
+    # dims += [SuperMarioTimeleftDiversity]
 
     agent = SuperMarioFBIAgent([], romfile) if args.agent == "luigi" else SuperMarioFBIAgent(dims, romfile)
     print(f"Generating plans using {args.agent}...")

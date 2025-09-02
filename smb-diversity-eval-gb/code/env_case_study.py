@@ -9,13 +9,14 @@ class SuperMarioCaseStudy(SuperMarioEnv):
         super().__init__(romfile, render)
         # overload the action space.
         action_list  = list()
-        # action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['a+left', 'a+right']] for t in [10, 15]]))
-        # action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['a+left', 'a+right', 'a']] for t in [3, 10, 15]]))
-        # action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['nop']] for t in [1]]))
-        action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['left', 'right', 'b+left', 'b+right', 'nop']] for t in [6]]))
-        action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['a']] for t in [6, 15]]))
+        
+        # action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['b+left', 'b+right', 'nop']] for t in [6]]))
+        # action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['a']] for t in [6, 15]]))
+        
+        action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['b+left', 'b+right', 'nop']] for t in [7]]))
+        action_list += list(chain.from_iterable([[f'{a},{t}' for a in ['a']] for t in [7, 15]]))
         self.actions = action_list
 
     def is_goal(self, state):
         # We will stop when the level progress if greater than or equal 432.
-        return state.level_progress >= 300 #450 #430
+        return state.level_progress >= 450 #410 #430

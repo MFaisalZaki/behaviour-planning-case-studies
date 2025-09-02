@@ -28,7 +28,7 @@ def dump_plan(plan, env, dir):
     import os
     os.makedirs(dir, exist_ok=True)
     for t, (act, state) in enumerate(zip(plan, env.simulate(plan))):
-        state.save(env.romfile, os.path.join(dir, f"0_t_{t}_{str(act)}.png"))
+        state.save(env.romfile, os.path.join(dir, f"0_t_{t}_{str(act)}.pdf"))
 
 def dump_plans_render(plans, env, dir, prefix):
     for idx, plan in enumerate(plans):
