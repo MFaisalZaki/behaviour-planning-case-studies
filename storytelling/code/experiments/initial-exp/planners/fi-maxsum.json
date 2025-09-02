@@ -1,0 +1,10 @@
+{
+    "tag": "fi-maxsum",
+    "planner": "fi",
+    "planner-parameters": {
+        "selection-method": "maxsum"
+    },
+    "dims": [
+        ["PossibleEndingsSMT", "None"]
+    ]
+}

@@ -1,0 +1,10 @@
+{
+    "tag": "fi-k",
+    "planner": "fi",
+    "planner-parameters": {
+        "selection-method": "k"
+    },
+    "dims": [
+        ["PossibleEndingsSMT", "None"]
+    ]
+}
