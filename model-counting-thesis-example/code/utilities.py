@@ -54,13 +54,13 @@ def fi_generated_plans(task, domainfile, problemfile, dims, sandbox_dir, k=1000,
     except SubprocessError as e:
         pass
 
-    planlist = []
+    planlist = set()
     found_plans = os.path.join(tmprun, 'found_plans', 'done')
     if not os.path.exists(found_plans): return []
     for plan in os.listdir(found_plans):
         with open(os.path.join(found_plans, plan), 'r') as f:
             plan = f.read()
-            if not plan in planlist: planlist.append(plan)
+            if not plan in planlist: planlist.add(plan)
 
     bs_cfg = {
         "fbi-planner-type": "ForbidBehaviourIterativeSMT",
@@ -84,8 +84,10 @@ def fi_generated_plans(task, domainfile, problemfile, dims, sandbox_dir, k=1000,
         'dims': dims
     }
 
-    bc_counter = BehaviourCountSMT(domainfile, problemfile, bs_cfg, planlist, is_oversubscription_planning=False)
-    return bc_counter.selected_plans(k)
+    bc_counter = BehaviourCountSMT(domainfile, problemfile, bs_cfg, list(planlist), is_oversubscription_planning=False)
+    selected_plans = bc_counter.selected_plans(k)
+    # now we need to lift this plan
+    return [plan.replace_action_instances(bc_counter.gr_result.map_back_action_instance) for plan in selected_plans]
 
 def fbi_smt_generated_plans(task, domainfile, problemfile, dims, sandbox_dir, k=1000, q=1.0):
     _cfg = {
