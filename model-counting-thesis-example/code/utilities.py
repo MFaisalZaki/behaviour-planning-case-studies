@@ -43,16 +43,20 @@ def fi_generated_plans(task, domainfile, problemfile, dims, sandbox_dir, k=1000,
     os.makedirs(tmpdir, exist_ok=True)
     os.makedirs(tmpscoredir, exist_ok=True)
 
+    # /Users/mustafafaisal/Developer/behaviour-planning-case-studies/model-counting-thesis-example/code/sandbox/sandbox-fi-tmpdir/rovers/rovers/found_plans/done
+    # /Users/mustafafaisal/Developer/behaviour-planning-case-studies/model-counting-thesis-example/code/sandbox/sandbox-fi-run-tmp/rovers/rovers/found_plans/done
+
     fienv = os.environ.copy()
     fienv['FI_PLANNER_RUNS'] = tmprun
     try:
-        output = subprocess.check_output(cmd, env=fienv, cwd=sandbox_dir)
+        output = subprocess.check_output(cmd, env=fienv, cwd=tmprun)
+        pass
     except SubprocessError as e:
-        print(e)
+        pass
 
     planlist = []
-    found_plans = os.path.join(tmpdir, 'found_plans', 'done')
-    if not os.path.exists(found_plans): return [], []
+    found_plans = os.path.join(tmprun, 'found_plans', 'done')
+    if not os.path.exists(found_plans): return []
     for plan in os.listdir(found_plans):
         with open(os.path.join(found_plans, plan), 'r') as f:
             plan = f.read()
@@ -76,7 +80,8 @@ def fi_generated_plans(task, domainfile, problemfile, dims, sandbox_dir, k=1000,
             ],
             "run-plan-validation": False,
             "behaviours-only": False
-        }
+        },
+        'dims': dims
     }
 
     bc_counter = BehaviourCountSMT(domainfile, problemfile, bs_cfg, planlist, is_oversubscription_planning=False)
