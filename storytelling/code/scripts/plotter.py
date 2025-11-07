@@ -8,16 +8,16 @@ import pandas as pd
 
 planner_name_map = {
     'symk': 'SymK',
-    'fi-bc': 'FI_bc',
+    'fi-bc': r'$\mathrm{FI_{bc}}$',
     'fi-k': 'FI_k',
     'fi-maxsum': 'FI_max',
-    'fbi-seq': 'FBI_SMT',
+    'fbi-seq': r'$\mathrm{FBI_{SMT}}$',
 
 }
 
 color_map = {
-    'FBI_SMT': '#1f77b4',  # blue
-    'FI_bc': '#ff7f0e',  # orange
+    r'$\mathrm{FBI_{SMT}}$': '#1f77b4',  # blue
+    r'$\mathrm{FI_{bc}}$': '#ff7f0e',  # orange
     'FI_k': '#2ca02c',  # green
     'FI_max': '#d62728',  # red,
     'SymK': '#9467bd',  # purple
@@ -53,7 +53,7 @@ def read_results(directory):
                 if 'marriage' in data['story']: continue
                 # if 'robbery' in data['story']: continue
                 # if data['info']['tag'] in ['fbi-seq', 'symk']: continue
-                # if data['tag'] in ['fi-bc', 'fi-k'] : continue
+                if data['tag'] in ['fi-maxsum', 'fi-k'] : continue
                 if data['k'] < 5: continue
                 if data['k'] > 10: continue
                 results.append((data['q'], data['k'], planner_name_map[data['tag']], domain_instance, data['behaviour-count']))
@@ -61,8 +61,8 @@ def read_results(directory):
 
 
 def plot_classical_experiments(raw_results, q_values, k_values, planners):
-    sorted_order = ['FI_bc', 'FI_max', 'FI_k', 'FBI_SMT']
-    # sorted_order = ['FI_max', 'FBI_SMT']
+    # sorted_order = [r'$\mathrm{FI_{bc}}$', 'FI_max', 'FI_k', r'$\mathrm{FBI_{SMT}}$']
+    sorted_order = [r'$\mathrm{FI_{bc}}$', r'$\mathrm{FBI_{SMT}}$']
     for q in q_values:
         planners_groups = {}
         for k in sorted(k_values):
@@ -75,29 +75,32 @@ def plot_classical_experiments(raw_results, q_values, k_values, planners):
 
             planners_groups[f'k={k}'] = filtered_samples
 
-            # Convert to long-form DataFrame
-            data = pd.DataFrame([(label, value) for label, values in filtered_samples.items() for value in values], columns=['Planner', 'Behaviour Count'])
-            # Create violin plot
-            plt.figure(figsize=(10, 6))
-            sns.violinplot(x='Planner', y='Behaviour Count', data=data, inner="box", cut=0, palette=color_map, order=sorted_order)
+            # # Convert to long-form DataFrame
+            # data = pd.DataFrame([(label, value) for label, values in filtered_samples.items() for value in values], columns=['Planner', 'Behaviour Count'])
+            # # Create violin plot
+            # plt.figure(figsize=(10, 6))
+            # sns.violinplot(x='Planner', y='Behaviour Count', data=data, inner="box", cut=0, palette=color_map, order=sorted_order)
 
-            # Styling
-            # plt.title('Violin Plot of Planner Samples')
-            plt.grid(True)
-            plt.tight_layout()
+            # # Styling
+            # # plt.title('Violin Plot of Planner Samples')
+            # plt.grid(True)
+            # plt.tight_layout()
             # save the figure
             # plt.savefig(os.path.join(dumpfigs, f"classical-q-{q}-k-{k}.pdf"), bbox_inches='tight')
         # fig, axes = plt.subplots(1, 4, figsize=(20, 5), sharey=False)
         # fig, axes = plt.subplots(1, 3, figsize=(20, 5), sharey=False)
-        fig, axes = plt.subplots(1, 2, figsize=(20, 5), sharey=False)
+        fig, axes = plt.subplots(1, 2, figsize=(10, 5), sharey=False)
         # Plot each group in a subplot
         for ax, (group_name, planners) in zip(axes, planners_groups.items()):
             df = pd.DataFrame([(label, val) for label, values in planners.items() for val in values],
                             columns=['Planner', 'Value'])
             sns.violinplot(x='Planner', y='Value', data=df, ax=ax, palette=color_map, order=sorted_order, cut=0, inner='box')
-            ax.set_title(group_name)
+            ax.set_title(group_name, fontsize=25)
             ax.set_xlabel('')
             ax.grid(True)
+            ax.tick_params(axis='x', labelsize=25)
+            plt.setp(ax.get_xticklabels(), ha='center')
+            plt.tight_layout()
 
         # Styling
         axes[0].set_ylabel("Behaviour Count")
@@ -109,8 +112,8 @@ def plot_classical_experiments(raw_results, q_values, k_values, planners):
 
 def dump_tables(raw_results, q_values, k_values, planners):
     storydomains = set(map(lambda x: x[3], raw_results))
-    sorted_order = ['FI_bc', 'FI_max', 'FI_k', 'FBI_SMT']
-    # sorted_order = ['FI_max', 'FBI_SMT']
+    # sorted_order = [r'$\mathrm{FI_{bc}}$', 'FI_max', 'FI_k', r'$\mathrm{FBI_{SMT}}$']
+    sorted_order = [r'$\mathrm{FI_{bc}}$', r'$\mathrm{FBI_{SMT}}$']
     domain_planners_values = [f"$BS_\Delta$,q,k,domain,{', '.join(sorted_order)}"]
     for q in q_values:
         for k in sorted(k_values):
@@ -137,9 +140,9 @@ def dump_tables(raw_results, q_values, k_values, planners):
             
             
 
-resultsdir = "/Users/mustafafaisal/Developer/app-BehaviourPlanningSMT-storytelling/sandbox-non-intentional/results"
-dumpfigs = "/Users/mustafafaisal/Developer/app-BehaviourPlanningSMT-storytelling/sandbox-non-intentional/dump-figs"
-dumpresults = "/Users/mustafafaisal/Developer/app-BehaviourPlanningSMT-storytelling/sandbox-non-intentional/dump-results"
+resultsdir = "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/storytelling/code/sandbox/raw-results"
+dumpfigs = "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/storytelling/code/sandbox/dump-figs"
+dumpresults = "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/storytelling/code/sandbox/dump-results"
 
 os.makedirs(dumpresults, exist_ok=True)
 os.makedirs(dumpfigs, exist_ok=True)
