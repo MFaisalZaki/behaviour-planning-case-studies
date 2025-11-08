@@ -85,7 +85,7 @@ def fi_generated_plans(task, domainfile, problemfile, dims, sandbox_dir, k=1000,
     }
 
     bc_counter = BehaviourCountSMT(domainfile, problemfile, bs_cfg, list(planlist), is_oversubscription_planning=False)
-    selected_plans = bc_counter.selected_plans(k)
+    selected_plans = bc_counter.selected_plans(k) if len(planlist) > k else list(map(lambda p: PDDLReader().parse_plan_string(bc_counter.task,  PDDLWriter(bc_counter.task).get_plan(PDDLReader().parse_plan_string(task, p)).replace(' ', '_')), planlist))
     # now we need to lift this plan
     return [plan.replace_action_instances(bc_counter.gr_result.map_back_action_instance) for plan in selected_plans]
 
