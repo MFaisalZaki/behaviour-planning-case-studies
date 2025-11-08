@@ -14,7 +14,7 @@ from utilities import fbi_smt_generated_plans, fi_generated_plans, compile_to_as
 
 def main():
 
-    k_plan_limit = 10
+    k_plan_limit = 1000
     q_quality_bound = 1.0
 
     # First step load the planning problem. 
@@ -41,15 +41,19 @@ def main():
 
     fbi_asp = BehaviourPlanning(encodingname='seq', problem=asp_task.problem, dims_addinfo=asp_dims)
 
-    for planfn in [fi_generated_plans, fbi_smt_generated_plans]:
-        print(f"Generating plans using {planfn.__name__}")
-        plans = planfn(task, domainfile, problemfile, dims, sandbox_dir, k=k_plan_limit, q=q_quality_bound)
-        if len(plans) == 0:
-            print(f"No plans generated using {planfn.__name__}")
-            continue
-        statistics = fbi_asp.compute_statistics(stringify_plans(task, plans))
-        with open(os.path.join(sandbox_dir, f'statistics_{planfn.__name__}.json'), 'w') as f:
-            json.dump(statistics, f, indent=4)
+    plannner_list = [fi_generated_plans, fbi_smt_generated_plans]
+    plannner_list = [fbi_smt_generated_plans, fbi_smt_generated_plans, fbi_smt_generated_plans, fbi_smt_generated_plans]
+    k_ranges = [4, 1000]
+    for k in k_ranges:
+        for idx, planfn in enumerate(plannner_list):
+            print(f"Generating plans using {planfn.__name__}")
+            plans = planfn(task, domainfile, problemfile, dims, sandbox_dir, k=k, q=q_quality_bound)
+            if len(plans) == 0:
+                print(f"No plans generated using {planfn.__name__}")
+                continue
+            statistics = fbi_asp.compute_statistics(stringify_plans(task, plans))
+            with open(os.path.join(sandbox_dir, f'k_{k}_{idx}_statistics_{planfn.__name__}.json'), 'w') as f:
+                json.dump(statistics, f, indent=4)
 
 if __name__ == "__main__":
     main()

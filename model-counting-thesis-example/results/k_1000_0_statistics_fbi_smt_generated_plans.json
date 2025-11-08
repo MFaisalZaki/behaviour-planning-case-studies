@@ -1,0 +1,48 @@
+{
+    "behaviour_stats": {
+        "rock,soil,image, resource_used_count(2)": 197,
+        "soil,image,rock, resource_used_count(2)": 97,
+        "rock,image,soil, resource_used_count(2)": 261,
+        "rock,image,soil, resource_used_count(1)": 26,
+        "rock,soil,image, resource_used_count(1)": 20,
+        "image,soil,rock, resource_used_count(1)": 17,
+        "image,rock,soil, resource_used_count(1)": 35,
+        "image,soil,rock, resource_used_count(2)": 97,
+        "image,rock,soil, resource_used_count(2)": 150,
+        "soil,rock,image, resource_used_count(2)": 77,
+        "soil,rock,image, resource_used_count(1)": 7,
+        "soil,image,rock, resource_used_count(1)": 16
+    },
+    "all_behaviour_stats": {
+        "soil,image,rock, resource_used_count(2)": 980,
+        "image,soil,rock, resource_used_count(2)": 1204,
+        "image,rock,soil, resource_used_count(2)": 1408,
+        "soil,rock,image, resource_used_count(2)": 1037,
+        "image,soil,rock, resource_used_count(1)": 61,
+        "image,rock,soil, resource_used_count(1)": 107,
+        "rock,soil,image, resource_used_count(2)": 937,
+        "rock,image,soil, resource_used_count(2)": 1154,
+        "soil,image,rock, resource_used_count(1)": 25,
+        "rock,image,soil, resource_used_count(1)": 102,
+        "rock,soil,image, resource_used_count(1)": 59,
+        "soil,rock,image, resource_used_count(1)": 25
+    },
+    "dims-details": [
+        "0:variable((\"communicated_soil_data\", constant(\"waypoint2\"))), value(variable((\"communicated_soil_data\", constant(\"waypoint2\"))), true)$$\n1:variable((\"communicated_rock_data\", constant(\"waypoint0\"))), value(variable((\"communicated_rock_data\", constant(\"waypoint0\"))), true)$$\n2:variable((\"communicated_image_data\", constant(\"objective0\"),constant(\"colour\"))), value(variable((\"communicated_image_data\", constant(\"objective0\"),constant(\"colour\"))), true)",
+        "rover0:{'name': 'rover0', 'min': 100, 'max': 0, 'delta': 5}$$\nrover1:{'name': 'rover1', 'min': 100, 'max': 0, 'delta': 5}"
+    ],
+    "ratio-str": [
+        "soil,image,rock, resource_used_count(2): 97/980",
+        "image,soil,rock, resource_used_count(2): 97/1204",
+        "image,rock,soil, resource_used_count(2): 150/1408",
+        "soil,rock,image, resource_used_count(2): 77/1037",
+        "image,soil,rock, resource_used_count(1): 17/61",
+        "image,rock,soil, resource_used_count(1): 35/107",
+        "rock,soil,image, resource_used_count(2): 197/937",
+        "rock,image,soil, resource_used_count(2): 261/1154",
+        "soil,image,rock, resource_used_count(1): 16/25",
+        "rock,image,soil, resource_used_count(1): 26/102",
+        "rock,soil,image, resource_used_count(1): 20/59",
+        "soil,rock,image, resource_used_count(1): 7/25"
+    ]
+}
