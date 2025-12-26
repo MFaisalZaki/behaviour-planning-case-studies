@@ -10,6 +10,15 @@ import z3
 from unified_planning.shortcuts import Fluent, BoolType, OperatorKind
 from pypmt.encoders.utilities import str_repr
 from behaviour_planning.over_domain_models.smt.bss.behaviour_features_library.base import DimensionConstructorSMT
+from behaviour_planning.over_domain_models.smt.bss.behaviour_count.behaviour_counter_simulator import DimSimulator
+
+class PossibleEndingsSimulator(DimSimulator):
+    def __init__(self, task, addinfo):
+        super().__init__(task, 'pe', {'vars': addinfo})
+
+    def plan_behaviour(self, plan):
+        return 'todo'
+
 
 class PossibleEndingsSMT(DimensionConstructorSMT):
     def __init__(self, encoder, additional_information):

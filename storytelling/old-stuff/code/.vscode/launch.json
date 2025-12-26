@@ -59,8 +59,8 @@
                 "${workspaceFolder}/sandbox/results-non-intentional/aladin0dev-symk.json",
                 "--planner", 
                 // "${workspaceFolder}/experiments/initial-exp/planners/fi-maxsum.json", 
-                // "${workspaceFolder}/experiments/initial-exp/planners/fi-bc.json", 
-                "${workspaceFolder}/experiments/initial-exp/planners/symk.json", 
+                "${workspaceFolder}/experiments/initial-exp/planners/fi-bc.json", 
+                // "${workspaceFolder}/experiments/initial-exp/planners/symk.json", 
                 // "${workspaceFolder}/experiments/initial-exp/planners/fbi-seq.json", 
                 "-k", "10",
                 "-q", "1.0"

@@ -25,11 +25,6 @@ from storytelling_bspace_dims.possible_endings import PossibleEndingsSMT, Possib
 
 from behaviour_planning.over_domain_models.smt.fbi.planner.planner import ForbidBehaviourIterativeSMT
 
-def convert_smt_dims_to_simulator_dims(dims):
-    sim_dims = []
-    for dclass, addinfo in dims:
-        sim_dims.append([eval(dclass.__name__.replace('SMT', 'Simulator')), addinfo])
-    return sim_dims
 
 def arg_parser():
     parser = argparse.ArgumentParser(description="Generate SLURM tasks for running experiments.")
@@ -42,6 +37,7 @@ def compile_qunatifiers_task(task):
     compilationlist  = []
     compilationlist += [["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING]]
     compilationlist += [['up_conditional_effects_remover', CompilationKind.CONDITIONAL_EFFECTS_REMOVING]]
+    compilationlist += [['up_grounder', CompilationKind.GROUNDING]]
     names = [name for name, _ in compilationlist]
     compilationkinds = [kind for _, kind in compilationlist]
     with Compiler(names=names, compilation_kinds=compilationkinds) as compiler:
@@ -76,8 +72,8 @@ def compile_end_story_action_task(task):
 
 def construct_task_details_info(taskdetails):
     return {
-            'domain' : os.path.basename(os.path.dirname(taskdetails['domainfile-name'])) + '/' + os.path.basename(taskdetails['domainfile-name']),
-            'problem': os.path.basename(taskdetails['problemfile-name']),
+            'domain' : os.path.basename(os.path.dirname(taskdetails['domainfile'])) + '/' + os.path.basename(taskdetails['domainfile']),
+            'problem': os.path.basename(taskdetails['problemfile']),
             'planner': taskdetails['planner'],
             'tag' : taskdetails['planner'],
             'planning-type': taskdetails['planning-type'],
@@ -103,53 +99,25 @@ def select_plans_using_bspace_simulator(taskdetails, task, dims, planslist):
     return bspace, bspace.selected_plans(taskdetails['k-plans'])
 
 def run_fbi(taskdetails, dims, compilation_list):
-    task = PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile'])
-    k = taskdetails['k-plans']
-    q = taskdetails['q']
+    pass
 
-    base_planner_cfg = {}
+def run_symk(taskdetails, dims, compilation_list):
+    pass
 
-    base_planner_cfg = {
-        "planner-name": "symk-opt",
-        "symk_search_time_limit": "1800s"
-    }
 
-    _params = {
-        "fbi-planner-type": "ForbidBehaviourIterativeSMT",
-        "base-planner-cfg": base_planner_cfg,
-        "bspace-cfg": {
-            "quality-bound-factor" : q,
-            "encoder": "seq",
-            "solver-timeout-ms": 600000,
-            "solver-memorylimit-mb": 16000,
-            "dims": [] if 'naive' in taskdetails['planner'] else dims,
-            "compliation-list": compilation_list,
-            "run-plan-validation": False,
-            "disable-after-goal-state-actions": False
-        }
-    }
-
-    # If the planning task is oversubscription, we add the utility dimension by default.
-    planner = ForbidBehaviourIterativeSMT(task, _params['bspace-cfg'], _params['base-planner-cfg'])
-    plans   = planner.plan(k)
-    dims = convert_smt_dims_to_simulator_dims(dims)
-    bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, task, dims, plans)
-    results = construct_results_file(taskdetails, task, selected_plans)
-    return results | {'logs': planner.log_msg}
-
-def run_fi(taskdetails, dims, compilation_list):
+def run_fi(taskdetails):
     tmpdir = os.path.join(taskdetails['sandbox-dir'], 'tmp', taskdetails['filename'].replace('.json',''))
     os.makedirs(tmpdir, exist_ok=True)
     
     with tempfile.TemporaryDirectory(dir=tmpdir) as tmpdirname:
-        new_task = compile_end_story_action_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
+        task = compile_qunatifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
+        new_task = compile_end_story_action_task(task)
         pddl_writer = PDDLWriter(new_task)
-
         # write the compiled domain and problem to a single file for debugging later.
-        domainfile = os.path.join(tmpdirname, 'domain.pddl')
+        domainfile = os.path.join(tmpdir, 'domain.pddl')
         with open(domainfile, 'w') as f:
             f.write(pddl_writer.get_domain())
-        problemfile = os.path.join(tmpdirname, 'problem.pddl')
+        problemfile = os.path.join(tmpdir, 'problem.pddl')
         with open(problemfile, 'w') as f:
             f.write(pddl_writer.get_problem())
 
@@ -189,39 +157,24 @@ def run_fi(taskdetails, dims, compilation_list):
                     plan = f.read()
                     if not plan in planlist: planlist.append(plan)
             planlist = set(planlist)
-            task = PDDLReader().parse_problem(domainfile, problemfile)
+            read_task = PDDLReader().parse_problem(domainfile, problemfile)
             generated_results = os.path.join(taskdetails['sandbox-dir'], 'fi-solved-instances')
             os.makedirs(generated_results, exist_ok=True)
-            planlist = list(map(lambda p: PDDLReader().parse_plan_string(task, p), list(set(planlist))))
-            # For FI we are testing the goal predicate ordering
-            
-            dims = convert_smt_dims_to_simulator_dims(dims)
-            bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, task, dims, planlist)
-            results = construct_results_file(taskdetails, task, selected_plans)
-            return results | {'logs': logs}
+            planlist = list(map(lambda p: PDDLReader().parse_plan_string(read_task, p), list(set(planlist))))
 
-def run_symk(taskdetails, dims, compilation_list):
-    tmpdir = os.path.join(taskdetails['sandbox-dir'], 'tmp', taskdetails['filename'].replace('.json',''))
-    os.makedirs(tmpdir, exist_ok=True)
-    task = PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile'])
-    k = taskdetails['k-plans']
-    q = taskdetails['q']
+            from unified_planning.model.walkers.free_vars import FreeVarsExtractor
+            vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.goals))
+            vars = [elem for s in vars for elem in s]
 
-    planlist = []
-    # now remove the hard goals then generate k plans with different utilities.
-    with tempfile.TemporaryDirectory(dir=tmpdir) as tmpdirname:        
-        with AnytimePlanner(name='symk', params={"symk_search_time_limit": "5400",
-                                                 "plan_cost_bound": q, 
-                                                 "number_of_plans": k}) as planner:
-            for i, result in enumerate(planner.get_solutions(task)):
-                if result.status == ResultsStatus.INTERMEDIATE:
-                    planlist.append(result.plan) if i < k else None
-    
-    planlist = list(filter(lambda p: len(p.actions) > 0, planlist))
-    dims = convert_smt_dims_to_simulator_dims(dims)
-    bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, task, dims, planlist)
-    results = construct_results_file(taskdetails, task, selected_plans)
-    return results 
+            # map the variables from task to read_task.
+            _is_same = lambda a, b: a._content.payload.name.replace('-', '_') == b._content.payload.name.replace('-', '_')
+            dims = [
+                [PossibleEndingsSimulator, [f for f in read_task.initial_values.keys() if any(_is_same(f, var) for var in vars)]]
+            ]
+
+            bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, read_task, dims, planlist)
+            results = construct_results_file(taskdetails, read_task, selected_plans)
+            return results
 
 def solve(taskname, args):
 
@@ -237,49 +190,23 @@ def solve(taskname, args):
     tmpdir = os.path.join(taskdetails['sandbox-dir'], 'tmp', taskdetails['filename'].replace('.json',''))
     os.makedirs(tmpdir, exist_ok=True)
     
-    compilation_list  = []
-    compilation_list += [["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING]]
-    # compilation_list += [["up_disjunctive_conditions_remover", CompilationKind.DISJUNCTIVE_CONDITIONS_REMOVING]]
-    compilation_list += [["fast-downward-reachability-grounder", CompilationKind.GROUNDING]]
-    
-    _original_task = 
-    names = [name for name, _ in compilation_list]
-    compilationkinds = [kind for _, kind in compilation_list]
-    with Compiler(names=names, compilation_kinds=compilationkinds) as compiler:
-        compiled_task = compiler.compile(_original_task)
-
-    compile_qunatifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
-
-    _task_writer   = PDDLWriter(compiled_task.problem)
-    renamed_domainfile  = os.path.join(tmpdir, 'renamed-domain.pddl')
-    renamed_problemfile = os.path.join(tmpdir, 'renamed-problem.pddl')
-    _task_writer.write_domain(renamed_domainfile)
-    _task_writer.write_problem(renamed_problemfile)
-
-    taskdetails['domainfile-name']  = taskdetails['domainfile']
-    taskdetails['problemfile-name'] = taskdetails['problemfile']
-
-    taskdetails['domainfile']  = renamed_domainfile
-    taskdetails['problemfile'] = renamed_problemfile
-
-    
-
-    dims = [[PossibleEndingsSMT, compiled_task.problem.goals]]
+    dims = []
     
     ret_details = {}
     start_time = time.time()
     match taskdetails['planner']:
         case 'fbi-smt-naive' | 'fbi-smt':
-            ret_details = run_fbi(taskdetails,  dims, compilation_list)
+            ret_details = run_fbi(taskdetails)
         case 'fi-bc':
-            ret_details = run_fi(taskdetails,   dims, compilation_list)
+            ret_details = run_fi(taskdetails)
         case 'symk':
-            ret_details = run_symk(taskdetails, dims, compilation_list)
+            ret_details = run_symk(taskdetails)
         case _:
             assert False, f"Unknown planning type {taskdetails['planning-type']}"
     end_time = time.time()
     ret_details['total-time-seconds'] = end_time - start_time
 
+    os.makedirs(os.path.dirname(args.outputdir), exist_ok=True)
     outputpath = os.path.join(args.outputdir, f'{taskname}-results.json')
     if len(ret_details) == 0: return
     with open(outputpath, 'w') as f:
