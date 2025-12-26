@@ -1,11 +1,12 @@
 #!/bin/bash
 
-# Usage: ./split_and_generate_slurm.sh /path/to/source_dir /path/to/parent_dest_dir name_prefix
+# Usage: ./split_and_generate_slurm.sh /path/to/source_dir /path/to/parent_dest_dir name_prefix slurm_partition
 
 SOURCE_DIR="$1"
 DEST_PARENT_DIR="$2"
 NAME_PREFIX="$3"
-MAX_FILES=999
+SLURM_PART="$4"
+MAX_FILES=1000
 
 if [[ -z "$SOURCE_DIR" || -z "$DEST_PARENT_DIR" || -z "$NAME_PREFIX" ]]; then
     echo "Usage: $0 /path/to/source_dir /path/to/parent_dest_dir name_prefix"
@@ -51,7 +52,7 @@ echo "Done splitting $file_count files into $dir_count directories."
 for d in "$DEST_PARENT_DIR"/dir_*; do
     ABS_PATH=$(realpath "$d")
     DIR_NAME=$(basename "$d")
-    JOB_COUNT=$(ls "$d"/*.slurm | wc -l)
+    JOB_COUNT=$(ls "$d"/*.sh | wc -l)
 
     # Create output and error subdirectories inside the logs parent
     OUT_DIR="$LOG_PARENT_DIR/${DIR_NAME}/output"
@@ -68,12 +69,12 @@ for d in "$DEST_PARENT_DIR"/dir_*; do
 #SBATCH --error=${ERR_DIR}/error_%A_%a.err
 
 # Get the list of job files
-JOB_FILES=(\$(ls ${ABS_PATH}/*.slurm | sort))
+JOB_FILES=(\$(ls ${ABS_PATH}/*.sh | sort))
 
 # Select the correct job file based on SLURM_ARRAY_TASK_ID
 JOB_FILE=\${JOB_FILES[\$((SLURM_ARRAY_TASK_ID-1))]}
 
-sbatch -p sturm --qos=sturm-limit-01 "\$JOB_FILE"
+sbatch -p $SLURM_PART --qos=$SLURM_PART-limit-01 "\$JOB_FILE"
 EOL
 
     echo "Generated Slurm script: $SLURM_SCRIPT"

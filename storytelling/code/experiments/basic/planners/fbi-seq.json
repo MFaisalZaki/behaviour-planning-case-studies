@@ -1,0 +1,30 @@
+{
+    "tag": "fbi-seq",
+    "planner": "fbismt",
+    "planner-parameters": {
+        "fbi-planner-type": "ForbidBehaviourIterativeSMT",
+        "base-planner-cfg": {
+            "planner-name": "symk-opt",
+            "symk_search_time_limit": "900s"
+        },
+        "bspace-cfg": {
+            "encoder": "seq",
+            "use_fixed_length_formula": true,
+            "horizon-planning": true,
+            "behaviours-only": false,
+            "skip-actions": false,
+            "run-plan-validation": false,
+            "disable-after-goal-state-actions": true,
+            "upper-bound": 6,
+            "solver-timeout-ms": 600000,
+            "solver-memorylimit-mb": 16000,
+            "dims": [
+                ["PossibleEndingsSMT", "TODO"]
+            ],
+            "compliation-list": [
+                ["up_quantifiers_remover", "QUANTIFIERS_REMOVING"],
+                ["up_grounder", "GROUNDING"]
+            ]
+        }
+    }
+}

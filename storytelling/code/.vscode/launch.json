@@ -6,89 +6,33 @@
     "configurations": [
 
         {
-            "name": "symk-run",
+            "name": "generate-benchmark-slurm-tasks",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/dev/symk-run.py",
+            "program": "${workspaceFolder}/generate-benchmark-slurm-tasks.py",
             "console": "integratedTerminal",
+            "args": [
+                "--sandbox-dir",
+                "${workspaceFolder}/sandbox-benchmark-narrative/",
+                "--planning-tasks-dir",
+                "${workspaceFolder}/pddl-domains-non-intentional",
+                "--planning-type", "narrative"
+            ],
             "justMyCode": false
         },
         {
-            "name": "main",
+            "name": "run-benchmark.py",
             "type": "debugpy",
             "request": "launch",
-            "program": "${workspaceFolder}/dev/main.py",
+            "program": "${workspaceFolder}/run-benchmark.py",
             "console": "integratedTerminal",
+            "args": [
+                "--taskfile",
+                "${workspaceFolder}/sandbox-benchmark-narrative/tasksdir/2.0-2-narrative-None-aladdin-npc-1-fi-bc.json",
+                "--outputdir",
+                "${workspaceFolder}/sandbox-benchmark-narrative/resultsdir"
+            ],
             "justMyCode": false
-        },
-        {
-            "name": "generate_diverse_endings - intentional",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/generate_diverse_endings.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--domain", 
-                "${workspaceFolder}/pddl-domains-intentional/aladdin-npc/domain.pddl", 
-                "--problem", 
-                "${workspaceFolder}/pddl-domains-intentional/aladdin-npc/problem.pddl", 
-                "--output", "${workspaceFolder}/sandbox/results-intentional/aladdin-fbi.json",
-                "--planner", 
-                "${workspaceFolder}/experiments/initial-exp/planners/fbi-seq.json", 
-                // "${workspaceFolder}/experiments/initial-exp/planners/fi-maxsum.json", 
-                "-k", "5",
-                "-c",
-                "-q", "1.2"
-            ]
-        },
-        {
-            "name": "generate_diverse_endings - non-intentional",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/generate_diverse_endings.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-            "args": [
-                "--domain", 
-                "${workspaceFolder}/pddl-domains-non-intentional/aladdin-npc/domain.pddl", 
-                "--problem", 
-                "${workspaceFolder}/pddl-domains-non-intentional/aladdin-npc/problem.pddl", 
-                "--output", 
-                // "${workspaceFolder}/sandbox/results-non-intentional/aladin0dev-fi.json",
-                "${workspaceFolder}/sandbox/results-non-intentional/aladin0dev-symk.json",
-                "--planner", 
-                // "${workspaceFolder}/experiments/initial-exp/planners/fi-maxsum.json", 
-                // "${workspaceFolder}/experiments/initial-exp/planners/fi-bc.json", 
-                "${workspaceFolder}/experiments/initial-exp/planners/symk.json", 
-                // "${workspaceFolder}/experiments/initial-exp/planners/fbi-seq.json", 
-                "-k", "10",
-                "-q", "1.0"
-            ]
-        },
-        {
-            "name": "generate slurm cmds",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/generate_slurm_cmds.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-        },
-        {
-            "name": "analyze results",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/analyze_results.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
-        },
-        {
-            "name": "plotter",
-            "type": "debugpy",
-            "request": "launch",
-            "program": "${workspaceFolder}/scripts/plotter.py",
-            "console": "integratedTerminal",
-            "justMyCode": false,
         }
     ]
 }
