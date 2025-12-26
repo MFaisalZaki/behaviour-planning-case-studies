@@ -3,7 +3,7 @@ import os
 import sys
 import json
 import time
-
+from math import ceil
 import unified_planning as up
 import subprocess
 import tempfile
@@ -33,7 +33,6 @@ def arg_parser():
     return parser
 
 def compile_qunatifiers_task(task):
-    from unified_planning.shortcuts import Compiler, CompilationKind
     compilationlist  = []
     compilationlist += [["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING]]
     compilationlist += [['up_conditional_effects_remover', CompilationKind.CONDITIONAL_EFFECTS_REMOVING]]
@@ -69,7 +68,6 @@ def compile_end_story_action_task(task):
     new_task.add_goal(new_task.environment.expression_manager.FluentExp(end_story_fluent))
     return new_task
 
-
 def construct_task_details_info(taskdetails):
     return {
             'domain' : os.path.basename(os.path.dirname(taskdetails['domainfile'])) + '/' + os.path.basename(taskdetails['domainfile']),
@@ -80,7 +78,6 @@ def construct_task_details_info(taskdetails):
             'k': taskdetails['k-plans'],
             'q': taskdetails['q']
         }
-
 
 def construct_results_file(taskdetails, task, plans):
     task_writer = PDDLWriter(task)
@@ -98,10 +95,75 @@ def select_plans_using_bspace_simulator(taskdetails, task, dims, planslist):
     bspace = BehaviourCountSimulator(task, planslist, dims)
     return bspace, bspace.selected_plans(taskdetails['k-plans'])
 
-def run_fbi(taskdetails, dims, compilation_list):
-    pass
+def run_fbi(taskdetails):
+    k = taskdetails['k-plans']
+    q = taskdetails['q']
 
-def run_symk(taskdetails, dims, compilation_list):
+    task = PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile'])
+    compilationlist  = []
+    compilationlist += [["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING]]
+    compilationlist += [['up_conditional_effects_remover', CompilationKind.CONDITIONAL_EFFECTS_REMOVING]]
+    names = [name for name, _ in compilationlist]
+    compilationkinds = [kind for _, kind in compilationlist]
+    with Compiler(names=names, compilation_kinds=compilationkinds) as compiler:
+        compiled_task = compiler.compile(task)
+
+    task = compiled_task.problem
+
+    with OneshotPlanner(name='symk-opt', params={"symk_search_time_limit": "900s"}) as planner:
+        result = planner.solve(task)
+        if not (result.status in up.engines.results.POSITIVE_OUTCOMES): return [], []
+        upperbound =  int(ceil(len(result.plan.actions) * q))
+
+    dims = [
+        [PossibleEndingsSMT, task.goals]
+    ]
+
+    base_planner_cfg = {
+            "planner-name": "symk-opt",
+            "symk_search_time_limit": "900s"
+        }
+
+    _params = {
+        "fbi-planner-type": "ForbidBehaviourIterativeSMT",
+        "base-planner-cfg": base_planner_cfg,
+        "bspace-cfg": {
+
+            'upper-bound': upperbound, # TODO: This shold be inferred from another planner.
+            "quality-bound-factor" : 1.0,
+            "encoder": "seq",
+            "solver-timeout-ms": 600000,
+            "solver-memorylimit-mb": 16000,
+            "dims": dims,
+            "compliation-list": [
+                ["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING],
+                ["up_grounder", CompilationKind.GROUNDING]
+            ],
+            "use_fixed_length_formula": True,
+            "horizon-planning": True,
+            "skip-actions": False,
+            "run-plan-validation": False,
+            "disable-after-goal-state-actions": True
+        }
+    }
+
+    planner = ForbidBehaviourIterativeSMT(task, _params['bspace-cfg'], _params['base-planner-cfg'])
+    plans   = planner.plan(k)
+
+    from unified_planning.model.walkers.free_vars import FreeVarsExtractor
+    vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.goals))
+    vars = [elem for s in vars for elem in s]
+
+    dims_sim = [
+            [PossibleEndingsSimulator, vars]
+        ]
+
+    bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, task, dims_sim, plans)
+    results = construct_results_file(taskdetails, task, selected_plans)
+
+    return results
+
+def run_symk(taskdetails):
     pass
 
 
@@ -184,13 +246,6 @@ def solve(taskname, args):
 
     with open(args.taskfile, 'r') as f:
         taskdetails = json.load(f)
-    
-    # TODO: Run a task renamer compilation to avoid the issue triggered by the mismatch between action names due 
-    # the difference in - and _.
-    tmpdir = os.path.join(taskdetails['sandbox-dir'], 'tmp', taskdetails['filename'].replace('.json',''))
-    os.makedirs(tmpdir, exist_ok=True)
-    
-    dims = []
     
     ret_details = {}
     start_time = time.time()
