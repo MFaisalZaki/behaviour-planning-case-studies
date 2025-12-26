@@ -17,10 +17,10 @@ planner_name_map = {
 
 color_map = {
     r'$\mathrm{FBI_{SMT}}$': '#1f77b4',  # blue
-    r'$\mathrm{FI_{bc}}$': '#ff7f0e',  # orange
-    'FI_k': '#2ca02c',  # green
-    'FI_max': '#d62728',  # red,
-    'SymK': '#9467bd',  # purple
+    r'$\mathrm{FI_{bc}}$': '#2ca02c',  # orange
+    # 'FI_k': '#2ca02c',  # green
+    # 'FI_max': '#d62728',  # red,
+    # 'SymK': '#9467bd',  # purple
 }
 
 plt.rcParams.update({
@@ -30,7 +30,10 @@ plt.rcParams.update({
     'xtick.labelsize': 16,
     'ytick.labelsize': 16,
     'legend.fontsize': 16,
-    'figure.titlesize': 16
+    'figure.titlesize': 16,
+    'mathtext.default': 'regular',
+    'font.family': 'serif',
+    'mathtext.fontset': 'cm'
 })
 
 
@@ -99,11 +102,12 @@ def plot_classical_experiments(raw_results, q_values, k_values, planners):
             ax.set_xlabel('')
             ax.grid(True)
             ax.tick_params(axis='x', labelsize=25)
+            ax.tick_params(axis='y', labelsize=25)
             plt.setp(ax.get_xticklabels(), ha='center')
             plt.tight_layout()
 
         # Styling
-        axes[0].set_ylabel("Behaviour Count")
+        axes[0].set_ylabel("Behaviour Diversity Count", fontsize=23)
         for ax in axes[1:]:
             ax.set_ylabel("")
 
@@ -140,9 +144,9 @@ def dump_tables(raw_results, q_values, k_values, planners):
             
             
 
-resultsdir = "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/storytelling/code/sandbox/raw-results"
-dumpfigs = "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/storytelling/code/sandbox/dump-figs"
-dumpresults = "/Users/mustafafaisal/Developer/behaviour-planning-case-studies/storytelling/code/sandbox/dump-results"
+resultsdir = "/home/ma342/developer/behaviour-planning-case-studies/storytelling/results/raw-results"
+dumpfigs = "/home/ma342/developer/behaviour-planning-case-studies/storytelling/results/dump-figs"
+dumpresults = "/home/ma342/developer/behaviour-planning-case-studies/storytelling/results/dump-results"
 
 os.makedirs(dumpresults, exist_ok=True)
 os.makedirs(dumpfigs, exist_ok=True)
