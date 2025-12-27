@@ -32,7 +32,7 @@ def arg_parser():
     parser.add_argument('--outputdir', type=str, required=True, help='Directory to store output files.')
     return parser
 
-def compile_qunatifiers_task(task):
+def compile_quantifiers_task(task):
     compilationlist  = []
     compilationlist += [["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING]]
     compilationlist += [['up_conditional_effects_remover', CompilationKind.CONDITIONAL_EFFECTS_REMOVING]]
@@ -163,6 +163,51 @@ def run_fbi(taskdetails):
 
     return results
 
+def run_fbi_naive(taskdetails):
+    k = taskdetails['k-plans']
+    q = taskdetails['q']
+
+    task = compile_quantifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
+    compiled_task = compile_end_story_action_task(task)
+
+    base_planner_cfg = {
+        "planner-name": "symk-opt",
+        "symk_search_time_limit": "900s"
+    }
+
+    _params = {
+        "fbi-planner-type": "ForbidBehaviourIterativeSMT",
+        "base-planner-cfg": base_planner_cfg,
+        "bspace-cfg": {
+            "quality-bound-factor" : q,
+            "encoder": "seq",
+            "solver-timeout-ms": 600000,
+            "solver-memorylimit-mb": 16000,
+            "dims": [],
+            "compliation-list": [],
+            "skip-actions": False,
+            "run-plan-validation": False,
+        }
+    }
+
+    planner = ForbidBehaviourIterativeSMT(compiled_task, _params['bspace-cfg'], _params['base-planner-cfg'])
+    plans   = planner.plan(k)
+
+    from unified_planning.model.walkers.free_vars import FreeVarsExtractor
+    vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.goals))
+    vars = [elem for s in vars for elem in s]
+    
+    # map the variables from task to read_task.
+    _is_same = lambda a, b: a._content.payload.name.replace('-', '_') == b._content.payload.name.replace('-', '_')
+    dims = [
+        [PossibleEndingsSimulator, [f for f in compiled_task.initial_values.keys() if any(_is_same(f, var) for var in vars)]]
+    ]
+
+    bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, compiled_task, dims, plans)
+    results = construct_results_file(taskdetails, compiled_task, selected_plans)
+
+    return results
+
 def run_symk(taskdetails):
     pass
 
@@ -172,7 +217,7 @@ def run_fi(taskdetails):
     os.makedirs(tmpdir, exist_ok=True)
     
     with tempfile.TemporaryDirectory(dir=tmpdir) as tmpdirname:
-        task = compile_qunatifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
+        task = compile_quantifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
         new_task = compile_end_story_action_task(task)
         pddl_writer = PDDLWriter(new_task)
         # write the compiled domain and problem to a single file for debugging later.
@@ -250,7 +295,9 @@ def solve(taskname, args):
     ret_details = {}
     start_time = time.time()
     match taskdetails['planner']:
-        case 'fbi-smt-naive' | 'fbi-smt':
+        case 'fbi-smt-naive':
+            ret_details = run_fbi_naive(taskdetails)
+        case 'fbi-smt':
             ret_details = run_fbi(taskdetails)
         case 'fi-bc':
             ret_details = run_fi(taskdetails)
@@ -267,11 +314,11 @@ def solve(taskname, args):
     with open(outputpath, 'w') as f:
         json.dump(ret_details, f, indent=4)
     
-    # delete created files.
-    if os.path.exists(taskdetails['domainfile']):
-        # delete the dir 
-        import shutil
-        shutil.rmtree(os.path.dirname(taskdetails['domainfile']))
+    # # delete created files.
+    # if os.path.exists(taskdetails['domainfile']):
+    #     # delete the dir 
+    #     import shutil
+    #     shutil.rmtree(os.path.dirname(taskdetails['domainfile']))
 
 def main():
     args = arg_parser().parse_args()

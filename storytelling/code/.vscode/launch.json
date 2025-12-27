@@ -28,7 +28,7 @@
             "console": "integratedTerminal",
             "args": [
                 "--taskfile",
-                "${workspaceFolder}/sandbox-benchmark-narrative/tasksdir/2.0-2-narrative-None-aladdin-npc-1-fbi-smt.json",
+                "${workspaceFolder}/sandbox-benchmark-narrative/tasksdir/2.0-2-narrative-None-aladdin-npc-1-fbi-smt-naive.json",
                 "--outputdir",
                 "${workspaceFolder}/sandbox-benchmark-narrative/resultsdir"
             ],

@@ -14,11 +14,17 @@ from behaviour_planning.over_domain_models.smt.bss.behaviour_count.behaviour_cou
 
 class PossibleEndingsSimulator(DimSimulator):
     def __init__(self, task, addinfo):
-        super().__init__(task, 'pe', {'vars': addinfo})
-
+        super().__init__(task, 'possible_endings', addinfo)
+        self.possible_endings = addinfo
+    
     def plan_behaviour(self, plan):
-        return 'todo'
-
+        achieved_endings = {}
+        end_state = plan.states[-1]
+        for f in self.possible_endings:
+            achieved_endings[f] = end_state.get_value(f).is_true()
+        # remove false fluents.
+        achieved_endings = [f for f in achieved_endings.keys() if achieved_endings[f]]
+        return 'pe:' + ', '.join(map(str, achieved_endings))
 
 class PossibleEndingsSMT(DimensionConstructorSMT):
     def __init__(self, encoder, additional_information):
