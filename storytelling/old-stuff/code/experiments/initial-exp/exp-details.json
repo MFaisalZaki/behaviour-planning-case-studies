@@ -1,0 +1,8 @@
+{
+    "q": [1.0, 2.0],
+    "k": [2, 5, 10, 100, 1000],
+    "timelimit": "01:30:00",
+    "memorylimit": "24GB",
+    "behaviour-count-k-list": [2, 5, 10, 100, 1000],
+    "behaviour-count-encoder": "seq"
+}

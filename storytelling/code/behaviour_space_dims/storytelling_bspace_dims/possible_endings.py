@@ -10,6 +10,21 @@ import z3
 from unified_planning.shortcuts import Fluent, BoolType, OperatorKind
 from pypmt.encoders.utilities import str_repr
 from behaviour_planning.over_domain_models.smt.bss.behaviour_features_library.base import DimensionConstructorSMT
+from behaviour_planning.over_domain_models.smt.bss.behaviour_count.behaviour_counter_simulator import DimSimulator
+
+class PossibleEndingsSimulator(DimSimulator):
+    def __init__(self, task, addinfo):
+        super().__init__(task, 'possible_endings', addinfo)
+        self.possible_endings = addinfo
+    
+    def plan_behaviour(self, plan):
+        achieved_endings = {}
+        end_state = plan.states[-1]
+        for f in self.possible_endings:
+            achieved_endings[f] = end_state.get_value(f).is_true()
+        # remove false fluents.
+        achieved_endings = [f for f in achieved_endings.keys() if achieved_endings[f]]
+        return 'pe:' + ', '.join(map(str, achieved_endings))
 
 class PossibleEndingsSMT(DimensionConstructorSMT):
     def __init__(self, encoder, additional_information):
@@ -35,13 +50,11 @@ class PossibleEndingsSMT(DimensionConstructorSMT):
 
 
     def __encode__(self, encoder):
-        for possible_ending in self.additional_information:
-            possible_ending_vars = self.__walk__(encoder, possible_ending) # skip the first operator
-            # collect variables in list
-            self.features_predciates_vars.extend(filter(lambda e: not (callable(e) or z3.is_and(e) or z3.is_or(e) or z3.is_not(e)), self.flatten(possible_ending_vars)))
-            # add the ending encodings.
-            self.encodings.append(possible_ending_vars[0])
-
+        _is_same = lambda a, b: a._content.payload.name.replace('-', '_') == b._content.payload.name.replace('-', '_')
+        
+        pe_fluents = [f for f in encoder.task.initial_values.keys() if any(_is_same(f, var) for var in self.additional_information)]
+        self.features_predciates_vars = list(map(lambda f: encoder.up_fluent_to_z3[str_repr(f)][-1], pe_fluents))
+        
     def value(self, plan):
         ret_value = []
         ret_value_str = []

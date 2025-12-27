@@ -1,0 +1,10 @@
+{
+    "tag": "fi-bc",
+    "planner": "fi",
+    "planner-parameters": {
+        "selection-method": "bc"
+    },
+    "dims": [
+        ["PossibleEndingsSMT", "None"]
+    ]
+}
