@@ -18,5 +18,5 @@ pip install seaborn
 
 python $(pwd)/generate-benchmark-slurm-tasks.py --sandbox-dir $(pwd)/sandbox-benchmark-narrative --planning-tasks-dir $(pwd)/pddl-domains-non-intentional --planning-type narrative
 
-sh $(pwd)/split-slurm.sh $(pwd)/sandbox-non-intentional/slurm-dumps $(pwd)/sandbox-non-intentional/splitted-slurm-dumps storytelling $slurmpartname
+sh $(pwd)/split-slurm.sh $(pwd)/sandbox-benchmark-narrative/slurm-dumps/ $(pwd)/sandbox-benchmark-narrative/splitted-slurm-scripts storytelling $slurmpartname
 deactivate
