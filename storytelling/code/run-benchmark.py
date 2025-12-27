@@ -96,84 +96,30 @@ def select_plans_using_bspace_simulator(taskdetails, task, dims, planslist):
     return bspace, bspace.selected_plans(taskdetails['k-plans'])
 
 def run_fbi(taskdetails):
-    k = taskdetails['k-plans']
-    q = taskdetails['q']
-
-    task = PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile'])
-    compilationlist  = []
-    compilationlist += [["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING]]
-    compilationlist += [['up_conditional_effects_remover', CompilationKind.CONDITIONAL_EFFECTS_REMOVING]]
-    names = [name for name, _ in compilationlist]
-    compilationkinds = [kind for _, kind in compilationlist]
-    with Compiler(names=names, compilation_kinds=compilationkinds) as compiler:
-        compiled_task = compiler.compile(task)
-
-    task = compiled_task.problem
-
-    with OneshotPlanner(name='symk-opt', params={"symk_search_time_limit": "900s"}) as planner:
-        result = planner.solve(task)
-        if not (result.status in up.engines.results.POSITIVE_OUTCOMES): return [], []
-        upperbound =  int(ceil(len(result.plan.actions) * q))
-
-    dims = [
-        [PossibleEndingsSMT, task.goals]
-    ]
-
-    base_planner_cfg = {
-            "planner-name": "symk-opt",
-            "symk_search_time_limit": "900s"
-        }
-
-    _params = {
-        "fbi-planner-type": "ForbidBehaviourIterativeSMT",
-        "base-planner-cfg": base_planner_cfg,
-        "bspace-cfg": {
-
-            'upper-bound': upperbound, # TODO: This shold be inferred from another planner.
-            "quality-bound-factor" : 1.0,
-            "encoder": "seq",
-            "solver-timeout-ms": 600000,
-            "solver-memorylimit-mb": 16000,
-            "dims": dims,
-            "compliation-list": [
-                ["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING],
-                ["up_grounder", CompilationKind.GROUNDING]
-            ],
-            "use_fixed_length_formula": True,
-            "horizon-planning": True,
-            "skip-actions": False,
-            "run-plan-validation": False,
-            "disable-after-goal-state-actions": True
-        }
-    }
-
-    planner = ForbidBehaviourIterativeSMT(task, _params['bspace-cfg'], _params['base-planner-cfg'])
-    plans   = planner.plan(k)
-
-    from unified_planning.model.walkers.free_vars import FreeVarsExtractor
-    vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.goals))
-    vars = [elem for s in vars for elem in s]
-
-    dims_sim = [
-            [PossibleEndingsSimulator, vars]
-        ]
-
-    bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, task, dims_sim, plans)
-    results = construct_results_file(taskdetails, task, selected_plans)
-
-    return results
-
-def run_fbi_naive(taskdetails):
+    # map the variables from task to read_task.
+    _is_same = lambda a, b: a._content.payload.name.replace('-', '_') == b._content.payload.name.replace('-', '_')
+    
     k = taskdetails['k-plans']
     q = taskdetails['q']
 
     task = compile_quantifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
     compiled_task = compile_end_story_action_task(task)
+    
+    from unified_planning.model.walkers.free_vars import FreeVarsExtractor
+    vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.goals))
+    vars = [elem for s in vars for elem in s]
+    pe_addinfo = [f for f in compiled_task.initial_values.keys() if any(_is_same(f, var) for var in vars)]
+    
+    
 
     base_planner_cfg = {
         "planner-name": "symk-opt",
         "symk_search_time_limit": "900s"
     }
+    
+    dims = [
+        [PossibleEndingsSMT, pe_addinfo]
+    ]
 
     _params = {
         "fbi-planner-type": "ForbidBehaviourIterativeSMT",
@@ -183,7 +129,7 @@ def run_fbi_naive(taskdetails):
             "encoder": "seq",
             "solver-timeout-ms": 600000,
             "solver-memorylimit-mb": 16000,
-            "dims": [],
+            "dims": [] if 'naive' in taskdetails['planner'] else dims,
             "compliation-list": [],
             "skip-actions": False,
             "run-plan-validation": False,
@@ -193,23 +139,15 @@ def run_fbi_naive(taskdetails):
     planner = ForbidBehaviourIterativeSMT(compiled_task, _params['bspace-cfg'], _params['base-planner-cfg'])
     plans   = planner.plan(k)
 
-    from unified_planning.model.walkers.free_vars import FreeVarsExtractor
-    vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.goals))
-    vars = [elem for s in vars for elem in s]
     
-    # map the variables from task to read_task.
-    _is_same = lambda a, b: a._content.payload.name.replace('-', '_') == b._content.payload.name.replace('-', '_')
     dims = [
-        [PossibleEndingsSimulator, [f for f in compiled_task.initial_values.keys() if any(_is_same(f, var) for var in vars)]]
+        [PossibleEndingsSimulator, pe_addinfo]
     ]
 
     bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, compiled_task, dims, plans)
     results = construct_results_file(taskdetails, compiled_task, selected_plans)
 
     return results
-
-def run_symk(taskdetails):
-    pass
 
 
 def run_fi(taskdetails):
@@ -295,14 +233,10 @@ def solve(taskname, args):
     ret_details = {}
     start_time = time.time()
     match taskdetails['planner']:
-        case 'fbi-smt-naive':
-            ret_details = run_fbi_naive(taskdetails)
-        case 'fbi-smt':
+        case 'fbi-smt-naive' | 'fbi-smt':
             ret_details = run_fbi(taskdetails)
         case 'fi-bc':
             ret_details = run_fi(taskdetails)
-        case 'symk':
-            ret_details = run_symk(taskdetails)
         case _:
             assert False, f"Unknown planning type {taskdetails['planning-type']}"
     end_time = time.time()
@@ -329,7 +263,7 @@ def main():
     os.makedirs(args.outputdir, exist_ok=True)
     
     # # for dev only
-    solve(taskname, args)
+    # solve(taskname, args)
 
     try:
         solve(taskname, args)
