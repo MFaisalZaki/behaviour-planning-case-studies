@@ -166,7 +166,7 @@ def generate_tasks(planning_tasks_dir, resources_dir, sandboxdir, planning_type)
     match planning_type:
         case 'narrative':
             q_list   = [1.0, 2.0]
-            planners = ['fbi-smt', 'fbi-smt-naive', 'fi-bc', 'symk']
+            planners = ['fbi-smt', 'fbi-smt-naive', 'fi-bc']
         case _:
             q_list = []
 
