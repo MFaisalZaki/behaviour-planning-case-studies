@@ -1,4 +1,5 @@
 import argparse
+from functools import partial
 import os
 import sys
 import json
@@ -15,6 +16,9 @@ from unified_planning.io import PDDLReader, PDDLWriter
 from unified_planning.shortcuts import CompilationKind, Compiler
 from unified_planning.shortcuts import OneshotPlanner, AnytimePlanner, OperatorKind
 from unified_planning.engines import PlanGenerationResultStatus as ResultsStatus
+from unified_planning.engines.results import CompilerResult
+from unified_planning.engines.compilers.utils import replace_action
+from unified_planning.plans import SequentialPlan
 
 from behaviour_planning.over_domain_models.smt.shortcuts import GoalPredicatesOrderingSMT, MakespanOptimalCostSMT, ResourceCountSMT, UtilityValueSMT, FunctionsSMT
 from behaviour_planning.over_domain_models.smt.shortcuts import ForbidBehaviourIterativeSMT
@@ -32,6 +36,12 @@ def arg_parser():
     parser.add_argument('--outputdir', type=str, required=True, help='Directory to store output files.')
     return parser
 
+def lift_plan(original_task, plan):
+    p = SequentialPlan([a for a in plan.actions if not ('end_story' in a.action.name)])
+    lifted_ = p.replace_action_instances(original_task.map_back_action_instance)
+    setattr(lifted_, 'behaviour', plan.behaviour)
+    return lifted_
+
 def compile_quantifiers_task(task):
     compilationlist  = []
     compilationlist += [["up_quantifiers_remover", CompilationKind.QUANTIFIERS_REMOVING]]
@@ -41,7 +51,7 @@ def compile_quantifiers_task(task):
     compilationkinds = [kind for _, kind in compilationlist]
     with Compiler(names=names, compilation_kinds=compilationkinds) as compiler:
         compiled_task = compiler.compile(task)
-    return compiled_task.problem
+    return compiled_task
 
 def compile_end_story_action_task(task):
     import unified_planning as up
@@ -50,6 +60,7 @@ def compile_end_story_action_task(task):
     from unified_planning.model.walkers.dnf import Dnf
     from pypmt.encoders.utilities import str_repr
 
+    new_to_old = {}
     new_task = task.clone()
     end_story_fluent = list(filter(lambda f: f.name == 'the-end', new_task.fluents)).pop()
     assert len(task.goals) == 1, "Task must have a single goal"
@@ -103,10 +114,10 @@ def run_fbi(taskdetails):
     q = taskdetails['q']
 
     task = compile_quantifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
-    compiled_task = compile_end_story_action_task(task)
+    compiled_task = compile_end_story_action_task(task.problem)
     
     from unified_planning.model.walkers.free_vars import FreeVarsExtractor
-    vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.goals))
+    vars = list(map(lambda expr: FreeVarsExtractor().get(expr), task.problem.goals))
     vars = [elem for s in vars for elem in s]
     pe_addinfo = [f for f in compiled_task.initial_values.keys() if any(_is_same(f, var) for var in vars)]
     
@@ -139,12 +150,15 @@ def run_fbi(taskdetails):
     planner = ForbidBehaviourIterativeSMT(compiled_task, _params['bspace-cfg'], _params['base-planner-cfg'])
     plans   = planner.plan(k)
 
+    # Lift the plans to the original task.
+    plans = list(map(partial(lift_plan, task), plans))
     
     dims = [
         [PossibleEndingsSimulator, pe_addinfo]
     ]
 
-    bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, compiled_task, dims, plans)
+    _original_task = PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile'])
+    bspace, selected_plans = select_plans_using_bspace_simulator(taskdetails, _original_task, dims, plans)
     results = construct_results_file(taskdetails, compiled_task, selected_plans)
 
     return results
@@ -156,7 +170,7 @@ def run_fi(taskdetails):
     
     with tempfile.TemporaryDirectory(dir=tmpdir) as tmpdirname:
         task = compile_quantifiers_task(PDDLReader().parse_problem(taskdetails['domainfile'], taskdetails['problemfile']))
-        new_task = compile_end_story_action_task(task)
+        new_task = compile_end_story_action_task(task.problem)
         pddl_writer = PDDLWriter(new_task)
         # write the compiled domain and problem to a single file for debugging later.
         domainfile = os.path.join(tmpdir, 'domain.pddl')
